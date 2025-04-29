@@ -1,14 +1,76 @@
 #include "DisasterPlanning.h"
 using namespace std;
 
+Map<string, Set<string>> makeSymmetric(const Map<string, Set<string>>& source);
+
+bool isCovered(const string& city,
+               const Map<string, Set<string>>& roadNetwork,
+               const Set<string>& supplyLocations);
+
+
+Optional<Set<string>> placeSuppliesRecursive(const Map<string, Set<string>>& roadNetwork,
+                                             int numCitiesLeft,
+                                             Set<string>& covered,
+                                             Set<string>& supplyCities);
+
+
+
 Optional<Set<string>> placeEmergencySupplies(const Map<string, Set<string>>& roadNetwork,
                                              int numCities) {
-    /* TODO: Delete this comment and next few lines, then implement this function. */
-    (void) roadNetwork;
-    (void) numCities;
-    return Nothing;
-}
+    if (numCities < 0) {
+        error("Number of cities cannot be negative.");
+    }
 
+    Set<string> allCities;
+    for (const string& city : roadNetwork.keys()) {
+        allCities += city;
+    }
+    Set<string> covered;
+    Set<string> supplyCities;
+
+    auto result = placeSuppliesRecursive(roadNetwork, numCities, covered, supplyCities);
+    return result;
+}
+Optional<Set<string>> placeSuppliesRecursive(const Map<string, Set<string>>& roadNetwork,
+                                             int numCitiesLeft,
+                                             Set<string>& covered,
+                                             Set<string>& supplyCities) {
+    bool allCovered = true;
+    for (const string& city : roadNetwork) {
+        if (!isCovered(city, roadNetwork, supplyCities)) {
+            allCovered = false;
+            break;
+        }
+    }
+
+    if (allCovered) {
+        return supplyCities;
+    }
+
+    if (numCitiesLeft == 0) return Nothing;
+
+    string targetCity;
+    for (const string& city : roadNetwork) {
+        if (!isCovered(city, roadNetwork, supplyCities)) {
+            targetCity = city;
+            break;
+        }
+    }
+
+    Set<string> candidates = roadNetwork[targetCity];
+    candidates += targetCity;
+
+    for (const string& candidate : candidates) {
+        if (supplyCities.contains(candidate)) continue;
+
+        supplyCities += candidate;
+        auto result = placeSuppliesRecursive(roadNetwork, numCitiesLeft - 1, covered, supplyCities);
+        if (result.hasValue()) return result;
+        supplyCities -= candidate;
+    }
+
+    return Nothing  ;
+}
 
 /* * * * * * * Test Helper Functions Below This Point * * * * * */
 #include "GUI/SimpleTest.h"
@@ -49,21 +111,27 @@ bool isCovered(const string& city,
 
 /* * * * * * Test Cases Below This Point * * * * * */
 
-/* TODO: Add your own custom tests here! */
+STUDENT_TEST("Simple triangle network with 1 supply center") {
+    Map<string, Set<string>> network = {
+        {"A", {"B"}},
+        {"B", {"A", "C"}},
+        {"C", {"B"}}
+    };
 
+    auto result = placeEmergencySupplies(network, 1);
+    EXPECT(result != Nothing);
 
+    Set<string> supplies = result.value();
+    EXPECT_LESS_THAN_OR_EQUAL_TO(supplies.size(), 1);
 
+    Set<string> covered;
+    for (string city : supplies) {
+        covered += city;
+        covered += network[city];
+    }
 
-
-
-
-
-
-
-
-
-
-
+    EXPECT_EQUAL(covered.size(), 3);
+}
 /* * * * * Provided Tests Below This Point * * * * */
 
 PROVIDED_TEST("Reports an error if numCities < 0") {
