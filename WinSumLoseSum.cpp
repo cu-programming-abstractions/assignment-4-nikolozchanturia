@@ -2,18 +2,45 @@
 using namespace std;
 
 Optional<Set<int>> makeTarget(const Set<int>& elems, int target) {
-    /* TODO: Delete this comment and the next few lines, then implement this
-     * function.
-     */
-    (void) elems;
-    (void) target;
+    if (target == 0) {
+        return Set<int>();
+    }
+    if (elems.isEmpty()) {
+        return Nothing;
+    }
+
+    int first = *elems.begin();
+    Set<int> rest = elems - first;
+
+    Optional<Set<int>> exclude = makeTarget(rest, target);
+    if (exclude != Nothing) {
+        return exclude;
+    }
+
+    Optional<Set<int>> include = makeTarget(rest, target - first);
+    if (include != Nothing) {
+        include.value().add(first);
+        return include;
+    }
+
     return Nothing;
 }
 
 /* * * * * Test Cases Below This Point * * * * */
 #include "GUI/SimpleTest.h"
 
-/* TODO: Add at least one custom test here, then delete this comment. */
+STUDENT_TEST("Can find subset that sums to 14") {
+    Set<int> elems = {3, 4, 7, 10};
+    int target = 14;
+
+    Optional<Set<int>> result = makeTarget(elems, target);
+
+    if (result != Nothing) {
+        cout << "Subset found: " << result.value() << endl;
+    } else {
+        cout << "No subset found for target " << target << endl;
+    }
+}
 
 
 

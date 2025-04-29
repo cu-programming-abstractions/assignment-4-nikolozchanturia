@@ -2,21 +2,63 @@
 using namespace std;
 
 int numSchedulesFor(const Set<Shift>& shifts, int maxHours) {
-    /* TODO: Delete this comment and the lines below it, then implement
-     * this function.
-     */
-    (void) shifts;
-    (void) maxHours;
-    return -1;
+    if (maxHours < 0) {
+        error("maxHours cannot be negative");
+    }
+    function<int(typename Set<Shift>::iterator, int, const Shift*)> countSchedules = [&](typename Set<Shift>::iterator it, int totalHours, const Shift* prevShift) -> int {
+        if (it == shifts.end()) {
+            return 1;
+        }
+
+        Shift currentShift = *it;
+
+
+        int totalSchedules = countSchedules(next(it), totalHours, prevShift);
+
+
+        if (totalHours + lengthOf(currentShift) <= maxHours &&
+            (prevShift == nullptr || !overlapsWith(currentShift, *prevShift))) {
+            totalSchedules += countSchedules(next(it), totalHours + lengthOf(currentShift), &currentShift);
+        }
+
+        return totalSchedules;
+    };
+
+    return countSchedules(shifts.begin(), 0, nullptr);
+
 }
 
 Set<Shift> maxProfitSchedule(const Set<Shift>& shifts, int maxHours) {
-    /* TODO: Delete this comment and the lines below it, then implement
-     * this function.
-     */
-    (void) shifts;
-    (void) maxHours;
-    return {};
+    if (maxHours < 0) {
+        error("maxHours cannot be negative");
+    }
+    function<pair<int, Set<Shift>>(typename Set<Shift>::iterator, int, const Shift*, Set<Shift>)> findMaxProfit = [&](typename Set<Shift>::iterator it, int totalHours, const Shift* prevShift, Set<Shift> currentSchedule) -> pair<int, Set<Shift>> {
+        if (it == shifts.end()) {
+            return {0, currentSchedule};
+        }
+
+        Shift currentShift = *it;
+        int profit = profitFor(currentShift);
+
+        auto [skipProfit, skipSchedule] = findMaxProfit(next(it), totalHours, prevShift, currentSchedule);
+
+        pair<int, Set<Shift>> includeProfitAndSchedule = {0, currentSchedule};
+        if (totalHours + lengthOf(currentShift) <= maxHours &&
+            (prevShift == nullptr || !overlapsWith(currentShift, *prevShift))) {
+            currentSchedule.add(currentShift);
+            includeProfitAndSchedule = findMaxProfit(next(it), totalHours + lengthOf(currentShift), &currentShift, currentSchedule);
+            includeProfitAndSchedule.first += profit;
+        }
+
+        if (skipProfit > includeProfitAndSchedule.first) {
+            return {skipProfit, skipSchedule};
+        } else {
+            return includeProfitAndSchedule;
+        }
+    };
+
+    auto [maxProfit, bestSchedule] = findMaxProfit(shifts.begin(), 0, nullptr, Set<Shift>());
+    return bestSchedule;
 }
 
 
@@ -24,22 +66,10 @@ Set<Shift> maxProfitSchedule(const Set<Shift>& shifts, int maxHours) {
 
 /* * * * * * Test Cases * * * * * */
 #include "GUI/SimpleTest.h"
-
-/* TODO: Add your own tests here. You know the drill - look for edge cases, think about
- * very small and very large cases, etc.
- */
-
-
-
-
-
-
-
-
-
-
-
-
+STUDENT_TEST("Identifies negative hours correctly") {
+    EXPECT_ERROR(numSchedulesFor({}, -137));
+    EXPECT_ERROR(maxProfitSchedule({}, -1));
+}
 
 
 /* * * * * * Test cases from the starter files below this point. * * * * * */
